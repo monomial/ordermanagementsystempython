@@ -7,7 +7,8 @@ from tests.test_api import test_db  # Reuse the test_db fixture
 # Create test client
 client = TestClient(app)
 
-def test_read_products_pagination(test_db):
+@pytest.mark.asyncio
+async def test_read_products_pagination(test_db):
     # First, create multiple products
     products_to_create = [
         {"name": f"Test Product {i}", "description": f"Description {i}", "price": 10.0 + i, "sku": f"SKU{i:03d}"}

@@ -5,14 +5,15 @@ import datetime
 
 from app.api.routes import customers, products, orders, inventory
 from app.api.routes.v2 import products as products_v2
-from app.db.database import create_tables
+from app.db.database import init, close
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup code here
-    create_tables()
+    await init()  # Initialize Tortoise ORM
     yield
     # Shutdown code here
+    await close()  # Close Tortoise ORM connections
 
 app = FastAPI(
     title="Order Management System",

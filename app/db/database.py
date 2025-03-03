@@ -1,32 +1,31 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from pydantic import ConfigDict
+from tortoise import Tortoise, fields
+from tortoise.models import Model
+from tortoise import run_async
+from tortoise.transactions import in_transaction
 
 # SQLite database URL
 SQLALCHEMY_DATABASE_URL = "sqlite:///./order_management.db"
 
-# Create SQLAlchemy engine
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
-
-# Create SessionLocal class
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create Base class for our models
-Base = declarative_base()
-
 # Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def init():
+    await Tortoise.init(
+        db_url=SQLALCHEMY_DATABASE_URL,
+        modules={"models": ["app.models.models"]}
+    )
+    await Tortoise.generate_schemas()
 
-# Create all tables in the database
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+async def close():
+    await Tortoise.close_connections()
+
+async def get_db():
+    async with in_transaction() as db:
+        yield db
 
 # Optional: Pydantic configuration for models (if needed elsewhere)
-model_config = ConfigDict(from_attributes=True)
+model_config = {
+    "from_attributes": True
+}
+
+# Run the initialization
+if __name__ == "__main__":
+    run_async(init())

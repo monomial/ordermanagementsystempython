@@ -1,45 +1,29 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from tortoise import Tortoise
+from tortoise.contrib.fastapi import register_tortoise
 
 from app.main import app, API_V1_PREFIX
-from app.db.database import Base, get_db
 from app.models.models import Customer, Product, Inventory, Order
-
-# Create in-memory SQLite database for testing
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Override the get_db dependency
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
 
 # Create test client
 client = TestClient(app)
 
 @pytest.fixture(scope="function")
-def test_db():
+async def test_db():
+    # Initialize Tortoise ORM
+    await Tortoise.init(
+        db_url="sqlite://:memory:",
+        modules={"models": ["app.models.models"]}
+    )
     # Create the tables
-    Base.metadata.create_all(bind=engine)
+    await Tortoise.generate_schemas()
     yield
     # Drop the tables after the test
-    Base.metadata.drop_all(bind=engine)
+    await Tortoise.close_connections()
 
-def test_create_customer(test_db):
+@pytest.mark.asyncio
+async def test_create_customer(test_db):
     response = client.post(
         f"{API_V1_PREFIX}/customers/",
         json={"name": "Test Customer", "email": "test@example.com", "phone": "1234567890", "address": "123 Test St"},
@@ -50,7 +34,8 @@ def test_create_customer(test_db):
     assert data["email"] == "test@example.com"
     assert "id" in data
 
-def test_create_product(test_db):
+@pytest.mark.asyncio
+async def test_create_product(test_db):
     response = client.post(
         f"{API_V1_PREFIX}/products/",
         json={"name": "Test Product", "description": "A test product", "price": 19.99, "sku": "TEST001"},
@@ -61,7 +46,8 @@ def test_create_product(test_db):
     assert data["price"] == 19.99
     assert "id" in data
 
-def test_create_inventory(test_db):
+@pytest.mark.asyncio
+async def test_create_inventory(test_db):
     # First create a product
     product_response = client.post(
         f"{API_V1_PREFIX}/products/",
@@ -79,7 +65,8 @@ def test_create_inventory(test_db):
     assert data["product_id"] == product_id
     assert data["quantity"] == 100
 
-def test_create_order(test_db):
+@pytest.mark.asyncio
+async def test_create_order(test_db):
     # Create a customer
     customer_response = client.post(
         f"{API_V1_PREFIX}/customers/",

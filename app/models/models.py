@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Table
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
+
 
 from app.db.database import Base
 
@@ -11,7 +12,7 @@ order_products = Table(
     Column("order_id", Integer, ForeignKey("orders.id"), primary_key=True),
     Column("product_id", Integer, ForeignKey("products.id"), primary_key=True),
     Column("quantity", Integer, default=1),
-    Column("unit_price", Float, nullable=False)
+    Column("unit_price", Float, nullable=False),
 )
 
 class Customer(Base):
@@ -23,8 +24,8 @@ class Customer(Base):
     phone = Column(String)
     address = Column(String)
     notes = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationship with orders
     orders = relationship("Order", back_populates="customer")
@@ -37,8 +38,8 @@ class Product(Base):
     description = Column(String)
     price = Column(Float, nullable=False)
     sku = Column(String, unique=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationship with inventory
     inventory = relationship("Inventory", back_populates="product", uselist=False)
@@ -51,11 +52,11 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"))
-    order_date = Column(DateTime, default=datetime.utcnow)
+    order_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     status = Column(String, default="pending")  # pending, completed, cancelled
     total_amount = Column(Float, default=0.0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationship with customer
     customer = relationship("Customer", back_populates="orders")
@@ -70,8 +71,8 @@ class Inventory(Base):
     product_id = Column(Integer, ForeignKey("products.id"), unique=True)
     quantity = Column(Integer, default=0)
     last_restock_date = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationship with product
     product = relationship("Product", back_populates="inventory")

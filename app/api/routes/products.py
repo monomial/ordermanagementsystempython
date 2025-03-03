@@ -19,7 +19,7 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
         )
     
     # Create new product
-    db_product = Product(**product.dict())
+    db_product = Product(**product.model_dump())
     db.add(db_product)
     db.commit()
     db.refresh(db_product)

@@ -1,14 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import datetime
 
 from app.api.routes import customers, products, orders, inventory
 from app.api.routes.v2 import products as products_v2
 from app.db.database import create_tables
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup code here
+    create_tables()
+    yield
+    # Shutdown code here
+
 app = FastAPI(
     title="Order Management System",
     description="A simple API for managing orders, customers, products, and inventory",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -32,10 +42,6 @@ app.include_router(inventory.router, prefix=f"{API_V1_PREFIX}/inventory", tags=[
 
 # Include v2 routers
 app.include_router(products_v2.router, prefix=f"{API_V2_PREFIX}/products", tags=["products-v2"])
-
-@app.on_event("startup")
-async def startup_event():
-    create_tables()
 
 @app.get("/", tags=["root"])
 async def root():

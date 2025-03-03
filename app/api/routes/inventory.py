@@ -28,7 +28,7 @@ def create_inventory(inventory: InventoryCreate, db: Session = Depends(get_db)):
         )
     
     # Create new inventory
-    db_inventory = Inventory(**inventory.dict())
+    db_inventory = Inventory(**inventory.model_dump())
     db.add(db_inventory)
     db.commit()
     db.refresh(db_inventory)
@@ -73,7 +73,7 @@ def update_inventory(inventory_id: int, inventory: InventoryUpdate, db: Session 
     
     # If quantity is being updated, update last_restock_date
     if "quantity" in update_data and update_data["quantity"] > db_inventory.quantity:
-        update_data["last_restock_date"] = datetime.utcnow()
+        update_data["last_restock_date"] = datetime.now(datetime.UTC)
     
     for key, value in update_data.items():
         setattr(db_inventory, key, value)

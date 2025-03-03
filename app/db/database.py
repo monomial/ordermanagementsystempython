@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
+from pydantic import ConfigDict
 
 # SQLite database URL
 SQLALCHEMY_DATABASE_URL = "sqlite:///./order_management.db"
@@ -13,7 +13,7 @@ engine = create_engine(
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create Base class
+# Create Base class for our models
 Base = declarative_base()
 
 # Dependency to get DB session
@@ -26,4 +26,7 @@ def get_db():
 
 # Create all tables in the database
 def create_tables():
-    Base.metadata.create_all(bind=engine) 
+    Base.metadata.create_all(bind=engine)
+
+# Optional: Pydantic configuration for models (if needed elsewhere)
+model_config = ConfigDict(from_attributes=True)

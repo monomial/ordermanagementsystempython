@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
@@ -19,12 +19,10 @@ class CustomerUpdate(BaseModel):
     address: Optional[str] = None
 
 class CustomerInDB(CustomerBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class Customer(CustomerInDB):
     pass
@@ -46,12 +44,10 @@ class ProductUpdate(BaseModel):
     sku: Optional[str] = None
 
 class ProductInDB(ProductBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class Product(ProductInDB):
     pass
@@ -70,18 +66,14 @@ class InventoryUpdate(BaseModel):
     last_restock_date: Optional[datetime] = None
 
 class InventoryInDB(InventoryBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class Inventory(InventoryInDB):
+    model_config = ConfigDict(from_attributes=True)
     product: Product
-
-    class Config:
-        from_attributes = True
 
 # Order Item schema for order creation
 class OrderItemCreate(BaseModel):
@@ -101,28 +93,23 @@ class OrderUpdate(BaseModel):
 
 # Order Item for response
 class OrderItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     product_id: int
     product_name: str
     quantity: int
     unit_price: float
     subtotal: float
 
-    class Config:
-        from_attributes = True
-
 class OrderInDB(OrderBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     order_date: datetime
     total_amount: float
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class Order(OrderInDB):
+    model_config = ConfigDict(from_attributes=True)
     customer: Customer
     items: List[OrderItem] = []
-
-    class Config:
-        from_attributes = True 
+    

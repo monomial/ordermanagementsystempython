@@ -19,7 +19,7 @@ def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
         )
     
     # Create new customer
-    db_customer = Customer(**customer.dict())
+    db_customer = Customer(**customer.model_dump())
     db.add(db_customer)
     db.commit()
     db.refresh(db_customer)

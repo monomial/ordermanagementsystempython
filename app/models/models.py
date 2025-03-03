@@ -22,6 +22,7 @@ class Customer(Base):
     email = Column(String, unique=True, index=True)
     phone = Column(String)
     address = Column(String)
+    notes = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -73,4 +74,4 @@ class Inventory(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationship with product
-    product = relationship("Product", back_populates="inventory") 
+    product = relationship("Product", back_populates="inventory")

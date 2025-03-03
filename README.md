@@ -30,7 +30,51 @@ A simple backend web application for managing orders, built with FastAPI and SQL
    ```
    python run.py
    ```
-5. Access the API documentation at http://localhost:8000/docs
+5. Access the API documentation at http://localhost:8001/docs
+
+## Database Management
+
+The application uses SQLite as the database and SQLAlchemy as the ORM. The database file is created at `./order_management.db`.
+
+### Database Scripts
+
+The `scripts` directory contains utilities for managing the database:
+
+1. **Seed Database**: Populate the database with sample data
+   ```
+   python scripts/seed_data.py
+   ```
+
+2. **View Database**: Display the current contents of the database in a formatted table view
+   ```
+   python scripts/view_database.py
+   ```
+
+3. **Run Migrations**: Manage database schema changes
+   ```
+   python scripts/run_migrations.py --help
+   ```
+
+For more information about these scripts, see the [scripts/README.md](scripts/README.md) file.
+
+### Database Migrations
+
+This project uses Alembic for database migrations. To create and apply migrations:
+
+1. Create a new migration after changing models:
+   ```
+   python scripts/run_migrations.py revision -m "Description of changes" -a
+   ```
+
+2. Apply migrations:
+   ```
+   python scripts/run_migrations.py upgrade
+   ```
+
+3. View migration history:
+   ```
+   python scripts/run_migrations.py history
+   ```
 
 ## API Endpoints
 
@@ -61,4 +105,4 @@ pytest
 
 ## License
 
-MIT 
+MIT

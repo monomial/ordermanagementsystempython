@@ -42,19 +42,33 @@ This script will show:
 
 ## Database Migrations
 
-This project uses Alembic for database migrations. The migration files are stored in the `../migrations` directory.
+This project uses Aerich for database migrations with Tortoise ORM. The migration files are stored in the `../migrations` directory.
 
 You can use the `run_migrations.py` script to manage database migrations:
+
+### Initializing Aerich
+
+To initialize Aerich for your project:
+
+```bash
+python run_migrations.py init
+```
+
+### Initializing the Database
+
+To initialize the database schema:
+
+```bash
+python run_migrations.py init-db
+```
 
 ### Creating a New Migration
 
 To create a new migration after changing the database models:
 
 ```bash
-python run_migrations.py revision -m "Description of changes" -a
+python run_migrations.py migrate --name "Description of changes"
 ```
-
-The `-a` flag enables autogeneration based on model changes.
 
 ### Applying Migrations
 
@@ -64,18 +78,12 @@ To apply all pending migrations:
 python run_migrations.py upgrade
 ```
 
-To apply migrations up to a specific version:
-
-```bash
-python run_migrations.py upgrade <revision_id>
-```
-
 ### Downgrading Migrations
 
 To downgrade to a previous version:
 
 ```bash
-python run_migrations.py downgrade <revision_id>
+python run_migrations.py downgrade --version <version_number>
 ```
 
 ### Migration History
@@ -86,12 +94,12 @@ To see the migration history:
 python run_migrations.py history
 ```
 
-### Current Migration
+### Current Migration Heads
 
-To see the current migration version:
+To see the current migration heads:
 
 ```bash
-python run_migrations.py current
+python run_migrations.py heads
 ```
 
 ### Help
@@ -106,10 +114,10 @@ python run_migrations.py --help
 
 The database schema includes the following tables:
 
-- `customers`: Stores customer information
-- `products`: Stores product information
+- `customer`: Stores customer information
+- `product`: Stores product information
 - `inventory`: Tracks inventory levels for each product
-- `orders`: Stores order information
-- `order_products`: Association table for the many-to-many relationship between orders and products
+- `order`: Stores order information
+- `order_product`: Association table for the many-to-many relationship between orders and products
 
 For more details on the schema, refer to the models defined in `../app/models/models.py`.

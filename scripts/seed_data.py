@@ -1,33 +1,42 @@
 #!/usr/bin/env python3
 """
-Seed script to populate the database with initial data.
+Seed script to populate the database with initial data for Tortoise ORM.
 """
 import sys
 import os
 from datetime import datetime, timedelta
 import random
+import asyncio
 
 # Add the parent directory to the path so we can import the app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy.orm import Session
-from app.db.database import SessionLocal, engine, Base
-from app.models.models import Customer, Product, Order, Inventory, order_products
+from tortoise import Tortoise, run_async
+from app.db.database import SQLALCHEMY_DATABASE_URL
+from app.models.models import Customer, Product, Order, Inventory
 
-def seed_database():
+# Convert SQLAlchemy URL to Tortoise format
+DB_URL = SQLALCHEMY_DATABASE_URL.replace('sqlite:///./','sqlite://')
+
+async def init_tortoise():
+    """Initialize Tortoise ORM."""
+    await Tortoise.init(
+        db_url=DB_URL,
+        modules={"models": ["app.models.models"]}
+    )
+    await Tortoise.generate_schemas()
+
+async def seed_database():
     """Seed the database with initial data."""
-    # Create a new session
-    db = SessionLocal()
+    # Initialize Tortoise ORM
+    await init_tortoise()
     
     try:
-        # Clear existing data
-        db.query(Order).delete()
-        db.query(Inventory).delete()
-        db.query(Product).delete()
-        db.query(Customer).delete()
-        
-        # Commit the deletions
-        db.commit()
+        # Clear existing data - delete in reverse order of dependencies
+        await Order.all().delete()
+        await Inventory.all().delete()
+        await Product.all().delete()
+        await Customer.all().delete()
         
         # Create customers
         customers = [
@@ -68,9 +77,11 @@ def seed_database():
             )
         ]
         
-        # Add customers to the session
-        db.add_all(customers)
-        db.flush()  # Flush to get the IDs
+        # Save customers
+        saved_customers = []
+        for customer in customers:
+            await customer.save()
+            saved_customers.append(customer)
         
         # Create products
         products = [
@@ -136,79 +147,64 @@ def seed_database():
             )
         ]
         
-        # Add products to the session
-        db.add_all(products)
-        db.flush()  # Flush to get the IDs
+        # Save products
+        saved_products = []
+        for product in products:
+            await product.save()
+            saved_products.append(product)
         
         # Create inventory for each product
-        inventories = []
-        for product in products:
+        for product in saved_products:
             inventory = Inventory(
-                product_id=product.id,
+                product=product,
                 quantity=random.randint(10, 100),
-                last_restock_date=datetime.utcnow() - timedelta(days=random.randint(1, 30))
+                last_restock_date=datetime.now(datetime.now().astimezone().tzinfo) - timedelta(days=random.randint(1, 30))
             )
-            inventories.append(inventory)
-        
-        # Add inventories to the session
-        db.add_all(inventories)
-        db.flush()
+            await inventory.save()
         
         # Create orders
-        orders = []
         for _ in range(20):  # Create 20 orders
-            customer = random.choice(customers)
-            order_date = datetime.utcnow() - timedelta(days=random.randint(1, 60))
+            customer = random.choice(saved_customers)
+            order_date = datetime.now(datetime.now().astimezone().tzinfo) - timedelta(days=random.randint(1, 60))
             status = random.choice(["pending", "completed", "cancelled"])
             
             order = Order(
-                customer_id=customer.id,
+                customer=customer,
                 order_date=order_date,
                 status=status,
                 total_amount=0.0  # Will be calculated later
             )
-            
-            # Add order to the session
-            db.add(order)
-            db.flush()  # Flush to get the order ID
+            await order.save()
             
             # Add products to the order
             num_products = random.randint(1, 5)
             order_total = 0.0
             
             # Select random products for this order
-            order_products_list = random.sample(products, num_products)
+            order_products_list = random.sample(saved_products, num_products)
             
             for product in order_products_list:
                 quantity = random.randint(1, 3)
                 unit_price = product.price
                 
-                # Insert into the association table
-                stmt = order_products.insert().values(
-                    order_id=order.id,
-                    product_id=product.id,
-                    quantity=quantity,
-                    unit_price=unit_price
-                )
-                db.execute(stmt)
+                # Add product to order with the through table attributes
+                await order.products.add(product, through_defaults={"quantity": quantity, "unit_price": unit_price})
                 
                 # Update order total
                 order_total += unit_price * quantity
             
             # Update the order total
             order.total_amount = order_total
-            orders.append(order)
+            await order.save()
         
-        # Commit all changes
-        db.commit()
         print("Database seeded successfully!")
         
     except Exception as e:
-        db.rollback()
         print(f"Error seeding database: {e}")
         raise
     finally:
-        db.close()
+        # Close Tortoise ORM connections
+        await Tortoise.close_connections()
 
 if __name__ == "__main__":
-    seed_database()
+    run_async(seed_database())

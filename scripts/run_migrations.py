@@ -1,84 +1,114 @@
 #!/usr/bin/env python3
 """
-Script to run database migrations.
+Script to run database migrations using Aerich for Tortoise ORM.
 """
 import sys
 import os
 import argparse
-from alembic.config import Config
-from alembic import command
+import asyncio
 
 # Add the parent directory to the path so we can import the app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def run_migrations(args):
+from aerich import Command
+from app.db.database import SQLALCHEMY_DATABASE_URL
+
+# Convert SQLAlchemy URL to Tortoise format
+# sqlite:///./order_management.db -> sqlite://order_management.db
+DB_URL = SQLALCHEMY_DATABASE_URL.replace('sqlite:///./','sqlite://')
+
+# Tortoise ORM config
+TORTOISE_ORM = {
+    "connections": {"default": DB_URL},
+    "apps": {
+        "models": {
+            "models": ["app.models.models", "aerich.models"],
+            "default_connection": "default",
+        },
+    },
+}
+
+async def run_migrations(args):
     """Run database migrations based on the provided arguments."""
-    # Get the path to the alembic.ini file
-    alembic_ini = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'alembic.ini')
-    
-    # Create the Alembic configuration
-    alembic_cfg = Config(alembic_ini)
+    command = Command(tortoise_config=TORTOISE_ORM, app="models")
     
     # Determine which command to run
-    if args.command == 'upgrade':
-        if args.revision == 'head':
-            print("Upgrading database to the latest revision...")
-            command.upgrade(alembic_cfg, 'head')
+    if args.command == 'init':
+        print("Initializing Aerich...")
+        await command.init()
+    
+    elif args.command == 'init-db':
+        print("Initializing database...")
+        await command.init_db(create_db=True)
+    
+    elif args.command == 'migrate':
+        if args.name:
+            print(f"Creating a new migration with name: {args.name}...")
+            await command.migrate(args.name)
         else:
-            print(f"Upgrading database to revision {args.revision}...")
-            command.upgrade(alembic_cfg, args.revision)
-    elif args.command == 'downgrade':
-        if args.revision == 'base':
-            print("Downgrading database to the base revision...")
-            command.downgrade(alembic_cfg, 'base')
-        else:
-            print(f"Downgrading database to revision {args.revision}...")
-            command.downgrade(alembic_cfg, args.revision)
-    elif args.command == 'revision':
-        if args.message:
-            if args.autogenerate:
-                print(f"Creating a new revision with message: {args.message} (autogenerate)...")
-                command.revision(alembic_cfg, message=args.message, autogenerate=True)
-            else:
-                print(f"Creating a new revision with message: {args.message}...")
-                command.revision(alembic_cfg, message=args.message, autogenerate=False)
-        else:
-            print("Error: A message is required for the 'revision' command.")
+            print("Error: A name is required for the 'migrate' command.")
             sys.exit(1)
+    
+    elif args.command == 'upgrade':
+        print("Upgrading database to the latest version...")
+        await command.upgrade()
+    
+    elif args.command == 'downgrade':
+        if args.version:
+            print(f"Downgrading database to version {args.version}...")
+            await command.downgrade(args.version)
+        else:
+            print("Error: A version is required for the 'downgrade' command.")
+            sys.exit(1)
+    
     elif args.command == 'history':
         print("Showing migration history...")
-        command.history(alembic_cfg)
-    elif args.command == 'current':
-        print("Showing current revision...")
-        command.current(alembic_cfg)
+        migrations = await command.history()
+        for migration in migrations:
+            print(f"Version: {migration.version}")
+            print(f"App: {migration.app}")
+            print(f"Name: {migration.name}")
+            print(f"Applied: {migration.applied}")
+            print("-" * 50)
+    
+    elif args.command == 'heads':
+        print("Showing current heads...")
+        heads = await command.heads()
+        for head in heads:
+            print(f"App: {head[0]}, Version: {head[1]}")
+    
     else:
         print(f"Error: Unknown command '{args.command}'")
         sys.exit(1)
     
     print("Done!")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run database migrations.')
+def main():
+    parser = argparse.ArgumentParser(description='Run database migrations with Aerich.')
     subparsers = parser.add_subparsers(dest='command', help='Migration command to run')
     
+    # Init command
+    init_parser = subparsers.add_parser('init', help='Initialize Aerich for the project')
+    
+    # Init-db command
+    init_db_parser = subparsers.add_parser('init-db', help='Initialize the database')
+    
+    # Migrate command
+    migrate_parser = subparsers.add_parser('migrate', help='Create a new migration')
+    migrate_parser.add_argument('--name', '-n', required=True, help='Name for the migration')
+    
     # Upgrade command
-    upgrade_parser = subparsers.add_parser('upgrade', help='Upgrade the database to a later version')
-    upgrade_parser.add_argument('revision', nargs='?', default='head', help='Revision to upgrade to (default: head)')
+    upgrade_parser = subparsers.add_parser('upgrade', help='Upgrade the database to the latest version')
     
     # Downgrade command
     downgrade_parser = subparsers.add_parser('downgrade', help='Revert the database to a previous version')
-    downgrade_parser.add_argument('revision', help='Revision to downgrade to')
-    
-    # Revision command
-    revision_parser = subparsers.add_parser('revision', help='Create a new revision')
-    revision_parser.add_argument('--message', '-m', required=True, help='Message for the revision')
-    revision_parser.add_argument('--autogenerate', '-a', action='store_true', help='Autogenerate the revision based on model changes')
+    downgrade_parser.add_argument('--version', '-v', required=True, help='Version to downgrade to')
     
     # History command
     history_parser = subparsers.add_parser('history', help='Show migration history')
     
-    # Current command
-    current_parser = subparsers.add_parser('current', help='Show current revision')
+    # Heads command
+    heads_parser = subparsers.add_parser('heads', help='Show current migration heads')
     
     args = parser.parse_args()
     
@@ -86,4 +116,7 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
     
-    run_migrations(args)
+    asyncio.run(run_migrations(args))
+
+if __name__ == "__main__":
+    main()

@@ -22,7 +22,11 @@ A simple backend web application for managing orders, built with FastAPI and SQL
    ```
    pip install -r requirements.txt
    ```
-4. Run the application:
+4. Initialize the database:
+   ```
+   python scripts/init_aerich.py
+   ```
+5. Run the application:
    ```
    uvicorn app.main:app --reload
    ```
@@ -30,11 +34,11 @@ A simple backend web application for managing orders, built with FastAPI and SQL
    ```
    python run.py
    ```
-5. Access the API documentation at http://localhost:8001/docs
+6. Access the API documentation at http://localhost:8001/docs
 
 ## Database Management
 
-The application uses SQLite as the database and SQLAlchemy as the ORM. The database file is created at `./order_management.db`.
+The application uses SQLite as the database and Tortoise ORM for data access. The database file is created at `./order_management.db`.
 
 ### Database Scripts
 
@@ -59,19 +63,25 @@ For more information about these scripts, see the [scripts/README.md](scripts/RE
 
 ### Database Migrations
 
-This project uses Alembic for database migrations. To create and apply migrations:
+This project uses Aerich for database migrations with Tortoise ORM. To create and apply migrations:
 
-1. Create a new migration after changing models:
+1. Initialize Aerich (if not already done):
    ```
-   python scripts/run_migrations.py revision -m "Description of changes" -a
+   python scripts/run_migrations.py init
+   python scripts/run_migrations.py init-db
    ```
 
-2. Apply migrations:
+2. Create a new migration after changing models:
+   ```
+   python scripts/run_migrations.py migrate --name "Description of changes"
+   ```
+
+3. Apply migrations:
    ```
    python scripts/run_migrations.py upgrade
    ```
 
-3. View migration history:
+4. View migration history:
    ```
    python scripts/run_migrations.py history
    ```

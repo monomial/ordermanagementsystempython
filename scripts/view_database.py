@@ -1,30 +1,41 @@
 #!/usr/bin/env python3
 """
-Script to view the contents of the database.
+Script to view the contents of the database using Tortoise ORM.
 """
 import sys
 import os
 from datetime import datetime
 from tabulate import tabulate
+import asyncio
 
 # Add the parent directory to the path so we can import the app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy.orm import Session
-from app.db.database import SessionLocal
-from app.models.models import Customer, Product, Order, Inventory, order_products
+from tortoise import Tortoise, run_async
+from app.db.database import SQLALCHEMY_DATABASE_URL
+from app.models.models import Customer, Product, Order, Inventory
 
-def view_database():
+# Convert SQLAlchemy URL to Tortoise format
+DB_URL = SQLALCHEMY_DATABASE_URL.replace('sqlite:///./','sqlite://')
+
+async def init_tortoise():
+    """Initialize Tortoise ORM."""
+    await Tortoise.init(
+        db_url=DB_URL,
+        modules={"models": ["app.models.models"]}
+    )
+
+async def view_database():
     """View the contents of the database."""
-    # Create a new session
-    db = SessionLocal()
+    # Initialize Tortoise ORM
+    await init_tortoise()
     
     try:
         # Get all data
-        customers = db.query(Customer).all()
-        products = db.query(Product).all()
-        orders = db.query(Order).all()
-        inventories = db.query(Inventory).all()
+        customers = await Customer.all()
+        products = await Product.all()
+        orders = await Order.all().prefetch_related('customer')
+        inventories = await Inventory.all().prefetch_related('product')
         
         # Display customers
         print("\n=== CUSTOMERS ===")
@@ -43,7 +54,7 @@ def view_database():
         # Display products
         print("\n=== PRODUCTS ===")
         product_data = [
-            [p.id, p.name, p.description[:30] + "..." if len(p.description) > 30 else p.description, 
+            [p.id, p.name, p.description[:30] + "..." if p.description and len(p.description) > 30 else p.description, 
              f"${p.price:.2f}", p.sku, p.created_at.strftime('%Y-%m-%d %H:%M:%S')]
             for p in products
         ]
@@ -57,9 +68,8 @@ def view_database():
         print("\n=== INVENTORY ===")
         inventory_data = []
         for inv in inventories:
-            product_name = next((p.name for p in products if p.id == inv.product_id), "Unknown")
             restock_date = inv.last_restock_date.strftime('%Y-%m-%d %H:%M:%S') if inv.last_restock_date else "Never"
-            inventory_data.append([inv.id, inv.product_id, product_name, inv.quantity, restock_date])
+            inventory_data.append([inv.id, inv.product.id, inv.product.name, inv.quantity, restock_date])
         
         print(tabulate(
             inventory_data,
@@ -71,9 +81,8 @@ def view_database():
         print("\n=== ORDERS ===")
         order_data = []
         for o in orders:
-            customer_name = next((c.name for c in customers if c.id == o.customer_id), "Unknown")
             order_data.append([
-                o.id, o.customer_id, customer_name, o.order_date.strftime('%Y-%m-%d %H:%M:%S'),
+                o.id, o.customer.id, o.customer.name, o.order_date.strftime('%Y-%m-%d %H:%M:%S'),
                 o.status, f"${o.total_amount:.2f}"
             ])
         
@@ -87,22 +96,25 @@ def view_database():
         print("\n=== ORDER DETAILS ===")
         order_details_data = []
         
-        # Query the order_products association table
-        order_details = db.execute(
-            "SELECT op.order_id, op.product_id, p.name, op.quantity, op.unit_price "
-            "FROM order_products op "
-            "JOIN products p ON op.product_id = p.id"
-        ).fetchall()
+        # Get all orders with their products
+        orders_with_products = await Order.all().prefetch_related('products')
         
-        for od in order_details:
-            order_details_data.append([
-                od[0],  # order_id
-                od[1],  # product_id
-                od[2],  # product_name
-                od[3],  # quantity
-                f"${od[4]:.2f}",  # unit_price
-                f"${od[3] * od[4]:.2f}"  # subtotal
-            ])
+        for order in orders_with_products:
+            # Get the M2M relation info
+            order_products = await order.products.all().values('id', 'name', 'price', '_through_order_products__quantity', '_through_order_products__unit_price')
+            
+            for product in order_products:
+                quantity = product['_through_order_products__quantity']
+                unit_price = product['_through_order_products__unit_price']
+                
+                order_details_data.append([
+                    order.id,
+                    product['id'],
+                    product['name'],
+                    quantity,
+                    f"${unit_price:.2f}",
+                    f"${quantity * unit_price:.2f}"  # subtotal
+                ])
         
         print(tabulate(
             order_details_data,
@@ -114,7 +126,8 @@ def view_database():
         print(f"Error viewing database: {e}")
         raise
     finally:
-        db.close()
+        # Close Tortoise ORM connections
+        await Tortoise.close_connections()
 
 if __name__ == "__main__":
-    view_database()
+    run_async(view_database())

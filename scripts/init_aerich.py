@@ -34,7 +34,7 @@ async def init():
     await command.init()
     
     # Initialize the database
-    await command.init_db(create_db=True)
+    await command.init_db(safe=True)
     
     print("Aerich initialized successfully!")
 

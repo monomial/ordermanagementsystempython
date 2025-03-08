@@ -39,7 +39,7 @@ async def run_migrations(args):
     
     elif args.command == 'init-db':
         print("Initializing database...")
-        await command.init_db(create_db=True)
+        await command.init_db(safe=True)
     
     elif args.command == 'migrate':
         if args.name:

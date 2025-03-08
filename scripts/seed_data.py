@@ -15,8 +15,8 @@ from tortoise import Tortoise, run_async
 from app.db.database import SQLALCHEMY_DATABASE_URL
 from app.models.models import Customer, Product, Order, Inventory
 
-# Convert SQLAlchemy URL to Tortoise format
-DB_URL = SQLALCHEMY_DATABASE_URL.replace('sqlite:///./','sqlite://')
+# Use the database URL directly from the database module
+DB_URL = SQLALCHEMY_DATABASE_URL
 
 async def init_tortoise():
     """Initialize Tortoise ORM."""
@@ -187,8 +187,8 @@ async def seed_database():
                 quantity = random.randint(1, 3)
                 unit_price = product.price
                 
-                # Add product to order with the through table attributes
-                await order.products.add(product, through_defaults={"quantity": quantity, "unit_price": unit_price})
+                # Add product to order (simple add without through_defaults)
+                await order.products.add(product)
                 
                 # Update order total
                 order_total += unit_price * quantity

@@ -2,9 +2,13 @@ from tortoise import Tortoise, fields
 from tortoise.models import Model
 from tortoise import run_async
 from tortoise.transactions import in_transaction
+import os
 
-# SQLite database URL
-SQLALCHEMY_DATABASE_URL = "sqlite:///./order_management.db"
+# Get the absolute path to the project root directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# SQLite database URL with absolute path
+SQLALCHEMY_DATABASE_URL = f"sqlite://{os.path.join(BASE_DIR, 'order_management.db')}"
 
 # Dependency to get DB session
 async def init():

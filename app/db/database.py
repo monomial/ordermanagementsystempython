@@ -8,12 +8,14 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # SQLite database URL with absolute path
-SQLALCHEMY_DATABASE_URL = f"sqlite://{os.path.join(BASE_DIR, 'order_management.db')}"
+DATABASE_URL = f"sqlite://{os.path.join(BASE_DIR, 'order_management.db')}"
+# Keep the old name for backward compatibility with existing code
+SQLALCHEMY_DATABASE_URL = DATABASE_URL
 
 # Dependency to get DB session
 async def init():
     await Tortoise.init(
-        db_url=SQLALCHEMY_DATABASE_URL,
+        db_url=DATABASE_URL,
         modules={"models": ["app.models.models"]}
     )
     await Tortoise.generate_schemas()

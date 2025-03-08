@@ -2,7 +2,7 @@ from app.models.models import Customer, Product, Order, Inventory, OrderItem
 from datetime import datetime
 import asyncio
 from tortoise import Tortoise
-from app.db.database import SQLALCHEMY_DATABASE_URL
+from app.db.database import DATABASE_URL
 
 def format_datetime(dt):
     if dt:
@@ -15,7 +15,7 @@ def print_separator(char="-", length=80):
 async def init_db():
     # Initialize Tortoise ORM using the same URL as the rest of the application
     await Tortoise.init(
-        db_url=SQLALCHEMY_DATABASE_URL,
+        db_url=DATABASE_URL,
         modules={"models": ["app.models.models"]}
     )
 

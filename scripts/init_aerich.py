@@ -10,10 +10,10 @@ import asyncio
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from aerich import Command
-from app.db.database import SQLALCHEMY_DATABASE_URL
+from app.db.database import DATABASE_URL
 
-# Convert SQLAlchemy URL to Tortoise format
-DB_URL = SQLALCHEMY_DATABASE_URL.replace('sqlite:///./','sqlite://')
+# Convert URL to Tortoise format if needed
+DB_URL = DATABASE_URL.replace('sqlite:///./','sqlite://')
 
 # Tortoise ORM config
 TORTOISE_ORM = {

@@ -8,19 +8,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from tortoise import Tortoise
 from app.models.models import Order, Product, OrderItem
-
-# Get the absolute path to the project root directory
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# SQLite database URL with absolute path
-SQLALCHEMY_DATABASE_URL = f"sqlite://{os.path.join(BASE_DIR, 'order_management.db')}"
+from app.db.database import DATABASE_URL
 
 async def migrate_order_items():
     print("Starting migration of order items...")
     
     # Initialize Tortoise ORM
     await Tortoise.init(
-        db_url=SQLALCHEMY_DATABASE_URL,
+        db_url=DATABASE_URL,
         modules={"models": ["app.models.models"]}
     )
     
@@ -28,8 +23,8 @@ async def migrate_order_items():
     print("Creating OrderItem table...")
     await Tortoise.generate_schemas(safe=True)
     
-    # Get database path from SQLAlchemy URL
-    db_path = SQLALCHEMY_DATABASE_URL.replace("sqlite://", "")
+    # Get database path from DATABASE_URL
+    db_path = DATABASE_URL.replace("sqlite://", "")
     
     # Connect to SQLite database directly to check for existing many-to-many table
     conn = sqlite3.connect(db_path)

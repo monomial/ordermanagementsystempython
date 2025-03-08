@@ -1,9 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional
 from math import ceil
 
-from app.db.database import get_db
 from app.models.models import Product
 from app.schemas.schemas import Product as ProductSchema
 from app.schemas.v2.schemas import PaginatedResponse
@@ -11,13 +9,12 @@ from app.schemas.v2.schemas import PaginatedResponse
 router = APIRouter()
 
 @router.get("/", response_model=PaginatedResponse[ProductSchema])
-def read_products(
+async def read_products(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Number of items per page"),
     name: Optional[str] = Query(None, description="Filter products by name"),
     min_price: Optional[float] = Query(None, ge=0, description="Minimum price filter"),
     max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter"),
-    db: Session = Depends(get_db)
 ):
     """
     Get a paginated list of products with optional filtering.
@@ -29,22 +26,22 @@ def read_products(
     - **max_price**: Optional filter for maximum price
     """
     # Start with base query
-    query = db.query(Product)
+    query = Product.all()
     
     # Apply filters if provided
     if name:
-        query = query.filter(Product.name.ilike(f"%{name}%"))
+        query = query.filter(name__icontains=name)
     if min_price is not None:
-        query = query.filter(Product.price >= min_price)
+        query = query.filter(price__gte=min_price)
     if max_price is not None:
-        query = query.filter(Product.price <= max_price)
+        query = query.filter(price__lte=max_price)
     
     # Get total count for pagination
-    total_items = query.count()
+    total_items = await query.count()
     total_pages = ceil(total_items / page_size)
     
     # Apply pagination
-    products = query.offset((page - 1) * page_size).limit(page_size).all()
+    products = await query.offset((page - 1) * page_size).limit(page_size)
     
     # Prepare response with pagination metadata
     return {
@@ -58,11 +55,11 @@ def read_products(
     }
 
 @router.get("/{product_id}", response_model=ProductSchema)
-def read_product(product_id: int, db: Session = Depends(get_db)):
+async def read_product(product_id: int):
     """
     Get a specific product by ID.
     """
-    db_product = db.query(Product).filter(Product.id == product_id).first()
+    db_product = await Product.filter(id=product_id).first()
     if db_product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

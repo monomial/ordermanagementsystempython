@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from tortoise import Tortoise
 from app.models.models import Order, Product, OrderItem
+from app.db.database import DATABASE_URL
 
 # Get the absolute path to the project root directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,7 +21,7 @@ async def add_sample_order_items():
     
     # Initialize Tortoise ORM
     await Tortoise.init(
-        db_url=SQLALCHEMY_DATABASE_URL,
+        db_url=DATABASE_URL,
         modules={"models": ["app.models.models"]}
     )
     

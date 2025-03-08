@@ -12,11 +12,11 @@ import asyncio
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tortoise import Tortoise, run_async
-from app.db.database import SQLALCHEMY_DATABASE_URL
+from app.db.database import DATABASE_URL
 from app.models.models import Customer, Product, Order, Inventory
 
 # Use the database URL directly from the database module
-DB_URL = SQLALCHEMY_DATABASE_URL
+DB_URL = DATABASE_URL
 
 async def init_tortoise():
     """Initialize Tortoise ORM."""

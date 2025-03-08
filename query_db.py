@@ -1,4 +1,4 @@
-from app.models.models import Customer, Product, Order, Inventory
+from app.models.models import Customer, Product, Order, Inventory, OrderItem
 from datetime import datetime
 import asyncio
 from tortoise import Tortoise
@@ -53,12 +53,18 @@ async def query_database():
         print_separator()
         print(f"{'ID':<5} {'Customer':<20} {'Status':<10} {'Total Amount':<12} {'Order Date':<20}")
         print_separator()
-        orders = await Order.all().prefetch_related('customer')
+        orders = await Order.all().prefetch_related('customer', 'items__product')
         for order in orders:
             print(f"{order.id:<5} {order.customer.name[:20]:<20} {order.status:<10} ${order.total_amount:<11.2f} {format_datetime(order.order_date):<20}")
             
-            # Skip showing order items for now as the relationship needs to be fixed
-            print("\tOrder items not shown - relationship needs to be fixed")
+            # Display order items
+            if hasattr(order, 'items') and order.items:
+                print(f"\t{'Product':<20} {'Quantity':<10} {'Unit Price':<12} {'Subtotal':<12}")
+                print(f"\t{'-' * 58}")
+                for item in order.items:
+                    print(f"\t{item.product.name[:20]:<20} {item.quantity:<10} ${item.unit_price:<11.2f} ${item.subtotal:<11.2f}")
+            else:
+                print("\tNo items in this order")
 
     except Exception as e:
         print(f"An error occurred: {str(e)}")

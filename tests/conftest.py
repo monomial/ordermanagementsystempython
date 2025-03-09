@@ -19,7 +19,7 @@ async def test_db():
         "connections": {
             "default": {
                 "engine": "tortoise.backends.sqlite",
-                "credentials": {"file": ":memory:"}
+                "credentials": {"file_path": ":memory:"}
             }
         },
         "apps": {
@@ -27,8 +27,16 @@ async def test_db():
                 "models": ["app.models.models"],
                 "default_connection": "default",
             }
-        }
+        },
+        "use_tz": False,
+        "timezone": "UTC"
     }
+    
+    # Close any existing connections first
+    try:
+        await Tortoise.close_connections()
+    except Exception:
+        pass
     
     # Initialize Tortoise ORM with the test config
     await Tortoise.init(config=test_db_config)

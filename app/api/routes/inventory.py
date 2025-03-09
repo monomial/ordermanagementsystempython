@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models.models import Inventory, Product
 from app.schemas.schemas import InventoryCreate, Inventory as InventorySchema, InventoryUpdate
@@ -31,12 +31,12 @@ async def create_inventory(inventory: InventoryCreate):
 
 @router.get("/", response_model=List[InventorySchema])
 async def read_inventories(skip: int = 0, limit: int = 100):
-    inventories = await Inventory.all().offset(skip).limit(limit)
+    inventories = await Inventory.all().prefetch_related("product").offset(skip).limit(limit)
     return inventories
 
 @router.get("/{inventory_id}", response_model=InventorySchema)
 async def read_inventory(inventory_id: int):
-    db_inventory = await Inventory.filter(id=inventory_id).first()
+    db_inventory = await Inventory.filter(id=inventory_id).prefetch_related("product").first()
     if db_inventory is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -46,7 +46,7 @@ async def read_inventory(inventory_id: int):
 
 @router.get("/product/{product_id}", response_model=InventorySchema)
 async def read_inventory_by_product(product_id: int):
-    db_inventory = await Inventory.filter(product_id=product_id).first()
+    db_inventory = await Inventory.filter(product_id=product_id).prefetch_related("product").first()
     if db_inventory is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -68,12 +68,15 @@ async def update_inventory(inventory_id: int, inventory: InventoryUpdate):
     
     # If quantity is being updated, update last_restock_date
     if "quantity" in update_data and update_data["quantity"] > db_inventory.quantity:
-        update_data["last_restock_date"] = datetime.now(datetime.UTC)
+        update_data["last_restock_date"] = datetime.now(timezone.utc)
     
     for key, value in update_data.items():
         setattr(db_inventory, key, value)
     
     await db_inventory.save()
+    
+    # Reload the inventory with product relation before returning
+    db_inventory = await Inventory.filter(id=inventory_id).prefetch_related("product").first()
     return db_inventory
 
 @router.delete("/{inventory_id}", status_code=status.HTTP_204_NO_CONTENT)

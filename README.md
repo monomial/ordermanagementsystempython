@@ -108,10 +108,51 @@ Enhanced endpoints with additional features:
 
 ## Testing
 
-Run tests with:
+The project includes a test suite with unit tests and integration tests.
+
+### Running Tests
+
+Run all tests with:
 ```
 pytest
 ```
+
+Run schema tests with coverage report:
+```
+./scripts/run_schema_tests.sh
+```
+
+Run all tests with coverage report (some tests may fail):
+```
+./scripts/run_tests.sh
+```
+
+### Test Structure
+
+- **Unit Tests**: Tests for individual components (models, schemas)
+  ```
+  pytest tests/unit/
+  ```
+
+- **Integration Tests**: Tests for API endpoints and their interactions
+  ```
+  pytest tests/integration/
+  ```
+
+- **Coverage Report**: Generate a coverage report
+  ```
+  pytest --cov=app tests/
+  ```
+
+### Writing Tests
+
+- Unit tests should be placed in `tests/unit/`
+- Integration tests should be placed in `tests/integration/`
+- Use fixtures from `tests/conftest.py` for common test setup
+
+### Note on Test Implementation
+
+The test suite is currently being developed. Some tests may not pass due to database configuration issues. The schema tests are working and have 100% coverage, but the model and integration tests need further configuration to properly initialize the test database.
 
 ## License
 

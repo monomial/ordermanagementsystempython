@@ -96,24 +96,19 @@ async def view_database():
         print("\n=== ORDER DETAILS ===")
         order_details_data = []
         
-        # Get all orders with their products
-        orders_with_products = await Order.all().prefetch_related('products')
+        # Get all orders with their items
+        orders_with_items = await Order.all().prefetch_related('items', 'items__product')
         
-        for order in orders_with_products:
-            # Get the M2M relation info
-            order_products = await order.products.all().values('id', 'name', 'price', '_through_order_products__quantity', '_through_order_products__unit_price')
-            
-            for product in order_products:
-                quantity = product['_through_order_products__quantity']
-                unit_price = product['_through_order_products__unit_price']
-                
+        for order in orders_with_items:
+            # Get the order items
+            for item in order.items:
                 order_details_data.append([
                     order.id,
-                    product['id'],
-                    product['name'],
-                    quantity,
-                    f"${unit_price:.2f}",
-                    f"${quantity * unit_price:.2f}"  # subtotal
+                    item.product.id,
+                    item.product.name,
+                    item.quantity,
+                    f"${item.unit_price:.2f}",
+                    f"${item.subtotal:.2f}"  # subtotal
                 ])
         
         print(tabulate(
